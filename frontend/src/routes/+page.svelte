@@ -29,9 +29,9 @@
         right: 0;
         bottom: calc(100% + 10px);
         background-image: url(/images/backgrounds/DungeonBricks.png);
-        pointer-events: none;
-        background-size: contain;
-        transition: top 2s ease, bottom 2s ease, background-position-x 2s ease;
+        background-size: 100%;
+        transition: top 2s ease, bottom 2s ease, background-position-x 2s ease, transform 2s ease;
+        transform-origin: center;
         outline: 10px black solid;
     }
     #Logo {
@@ -135,7 +135,7 @@
     #SelectCharacter {
         position: absolute;
         top: 50%;
-        left: 50%;
+        left: 150%;
         width: fit-content;
         height: fit-content;
         max-height: 25%;
@@ -184,10 +184,16 @@
     :global(.RotateOnHover:hover) {
         animation: Rotate 3s infinite linear;
     }
-    #TestButton {
+    #RightButton {
         position: absolute;
         bottom: 0;
         right: 0;
+        pointer-events: all;
+    }
+    #LeftButton {
+        position: absolute;
+        bottom: 0;
+        left: 0;
         pointer-events: all;
     }
     :global(#ChangeLog h2) {
@@ -198,6 +204,50 @@
     }
     :global(#ChangeLog > div) {
         margin-bottom: 5%;
+    }
+    #Door {
+        position: absolute;
+        top: 60%;
+        left: 350%;
+        height: 75%;
+        transform: translate(-50%,-50%);
+        aspect-ratio: 419/508;
+        transition: transform 2s ease 2s, filter 2s ease 3s, left 2s ease;
+        pointer-events: none;
+    }
+    #DoorFrame {
+        position: absolute;
+        height: 100%;
+        filter: drop-shadow(5mm 5mm 5mm black);
+    }
+    #DoorFill {
+        position: absolute;
+        top: 5%;
+        bottom: 4%;
+        left: 5%;
+        right: 5%;
+        background-color: white;
+        border-radius: 50% 50% 0 0;
+    }
+    #LeftDoor {
+        position: absolute;
+        height: 85.4%;
+        left: 11.7%;
+        top: 9%;
+        transition: transform 2s ease;
+    }
+    #RightDoor {
+        position: absolute;
+        height: 85.4%;
+        right: 12%;
+        top: 9%;
+        transition: transform 2s ease;
+    }
+    #EnterDoor {
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translate(-50%,0);
     }
 </style>
 <div id="Bricks"></div>
@@ -210,11 +260,17 @@
 <h1 id="ChangeLogTitle">Change Log</h1>
 <div id="ChangeLog"></div>
 <div id="PartyScreen">
-    <div id="SelectCharacter"></div>
-    <button id="TestButton" on:click={()=>{MovePartyIsSelected()}}>Done</button>
-    <div id="PartyList">
-
+    <div id="Door">
+        <div id="DoorFill"></div>
+        <img id="DoorFrame" src="/images/assets/DoorFrame.png">
+        <img id="LeftDoor" src="/images/assets/LeftDoor.png">
+        <img id="RightDoor" src="/images/assets/RightDoor.png">
     </div>
+    <div id="SelectCharacter"></div>
+    <button id="LeftButton" on:click={()=>{MovePartyScreenLeft()}}>MovePartyIsLeft</button>
+    <button id="RightButton" on:click={()=>{MovePartyScreenRight()}}>MovePartyScreenRight</button>
+    <button id="EnterDoor" on:click={()=>{EnterDoor()}}>EnterDoor</button>
+    <div id="PartyList"></div>
 </div>
 <div id="FadeOut"></div>
 <img id="Logo" src="/images/logo.png">
@@ -230,6 +286,17 @@
         if (!user.ok) {
             window.location.href = "/login";
         } 
+        MovingPartsPage = [
+            {
+                Element:document.getElementById("SelectCharacter"),
+                Page:1
+            },
+            {
+                Element:document.getElementById("Door"),
+                Page:3,
+                MovingBackground: true
+            }
+        ]
         generateChangeLog();
         GenerateCharacters();
         
@@ -239,6 +306,7 @@
     // Animation Loop
     let MovingElements = new Array();
     let ScrollSpeed = 40;
+    let BackgroundScroll = false;
     let lastFrameTime = performance.now();
     // Spawn Elements
     let Snow = true;
@@ -247,7 +315,11 @@
         const currentTime = performance.now();
         const deltaTime = (currentTime - lastFrameTime)/1000;
         lastFrameTime = currentTime;
-
+        if (BackgroundScroll) {
+            let PartyScreen = document.getElementById("PartyScreen");
+            let ComputedStyle = window.getComputedStyle(PartyScreen);
+            PartyScreen.style.backgroundPositionY = parseFloat(ComputedStyle.backgroundPositionY) + ScrollSpeed * deltaTime + "px";
+        }
         if (Snow) {
             if (SnowNextSpawn<=0) {
                 SnowNextSpawn = Math.random()*0.5;
@@ -280,18 +352,43 @@
     function MovePartyScreenIn() {
         document.getElementById("PartyScreen").style.top = 0;
         document.getElementById("PartyScreen").style.bottom = 0;
+        document.getElementById("PartyScreen").style.backgroundPositionX = "";
+        document.getElementById("SelectCharacter").style.left = "";
     }
     function MovePartyScreenOut() {
         document.getElementById("PartyScreen").style.top = "-100%";
         document.getElementById("PartyScreen").style.bottom = "calc(100% + 10px)";
     }
-    function MovePartyIsSelected() {
-        document.getElementById("PartyScreen").style.backgroundPositionX = -document.getElementById("PartyScreen").offsetWidth + "px";
-        document.getElementById("SelectCharacter").style.left = "-50%";
+    var CurrentPage = 0;
+    var MovingPartsPage;
+    function MovePartyScreenLeft() {
+        MovePageTo(CurrentPage-1);
     }
-    function MovePartyIsNotSelected() {
-        document.getElementById("PartyScreen").style.backgroundPositionX = "0px";
-        document.getElementById("SelectCharacter").style.left = "50%";
+    function MovePartyScreenRight() {
+        MovePageTo(CurrentPage+1);
+    }
+    function MovePageTo(index) {
+        CurrentPage = index;
+        document.getElementById("PartyScreen").style.backgroundPositionX = -document.getElementById("PartyScreen").offsetWidth*index + "px";
+        
+        for (let i = 0; i < MovingPartsPage.length; i++) {
+            if (MovingPartsPage[i].Page==index) {
+                MovingPartsPage[i].Element.style.left = "50%";
+            } else
+                MovingPartsPage[i].Element.style.left = 50 + (MovingPartsPage[i].Page - index)*100 + "%";
+
+        }
+    }
+    function EnterDoor() {
+        BackgroundScroll = false;
+        document.getElementById("LeftDoor").style.transform = "translate(-100%,0) scale(-0.85,1)";
+        document.getElementById("RightDoor").style.transform = "translate(100%,0) scale(-0.85,1)";
+
+        document.getElementById("Door").style.transform = "translate(-50%,-100%) scale(4,4)";
+        document.getElementById("Door").style.filter = "opacity(0)";
+
+        setTimeout(()=>{document.getElementById("PartyScreen").style.transform = "scale(10,10)";},2000);
+        setTimeout(()=>{document.getElementById("PartyScreen").style.transform = "";},4000);
     }
     async function generateChangeLog() {
         let changelog = await(await fetch(window.location.origin+'/api/info/changelog', {
