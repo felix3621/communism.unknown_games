@@ -67,3 +67,13 @@ functions:
 
 returns:
 - [200] string: "Logout successful"
+
+# changelog
+
+Login required
+
+functions:
+- Get the changelog log (file in master root)
+
+returns:
+- [200] JSON: changelog

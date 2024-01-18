@@ -1,0 +1,35 @@
+[
+    {
+        "version": 0.1,
+        "title": "Home",
+        "description": "Created homepage",
+        "changes": [
+            "Change Log Place Holder",
+            "Dungeon Games Logo",
+            "Background Snow Effect",
+            "Background Ice Bricks",
+            "Quick Party, Private Party, Find Party Buttons",
+            "Party Screen Place Holder"
+        ]
+    },
+    {
+        "version": 0.2,
+        "title": "account system",
+        "description": "Created account system",
+        "changes": [
+            "Login page",
+            "Login system",
+            "(Backend) Functional account system"
+        ]
+    },
+    {
+        "version": 0.3,
+        "title": "Change log",
+        "description": "Changes can be seen by user",
+        "changes": [
+            "Removed changelog placeholder",
+            "Show changelog gotten from server",
+            "(backend) get changelog"
+        ]
+    }
+]

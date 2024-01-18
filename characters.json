@@ -1,0 +1,76 @@
+[
+    {
+        "Name":"Bob",
+        "Visuals": [
+            {
+                "Texture":"bob/Wheel",
+                "class":"RotateOnHover"
+            },
+            {
+                "Texture":"bob/Face",
+                "Style":"height:60%;pointer-events: none;"
+            }
+        ]
+    },
+    {
+        "Name":"Evil Bob",
+        "Visuals": [
+            {
+                "Texture":"bob/RedWheel",
+                "class":"RotateOnHover"
+            },
+            {
+                "Texture":"bob/RedFace",
+                "Style":"height:60%;pointer-events: none;"
+            }
+        ]
+    },
+    {
+        "Name":"Felix",
+        "Visuals": [
+            {
+                "Texture":"felix"
+            }
+        ]
+    },
+    {
+        "Name":"Fix Fox",
+        "Visuals": [
+            {
+                "Texture":"FixFox"
+            }
+        ]
+    },
+    {
+        "Name":"Ian",
+        "Visuals": [
+            {
+                "Texture":"Ian"
+            }
+        ]
+    },
+    {
+        "Name":"Pirate Slime",
+        "Visuals": [
+            {
+                "Texture":"PirateSlime"
+            }
+        ]
+    },
+    {
+        "Name":"Purple Slime",
+        "Visuals": [
+            {
+                "Texture":"PurpleSlime"
+            }
+        ]
+    },
+    {
+        "Name":"Svæin",
+        "Visuals": [
+            {
+                "Texture":"Svæin"
+            }
+        ]
+    }
+]

@@ -31,7 +31,7 @@
         background-image: url(/images/backgrounds/DungeonBricks.png);
         pointer-events: none;
         background-size: contain;
-        transition: top 2s ease, bottom 2s ease;
+        transition: top 2s ease, bottom 2s ease, background-position-x 2s ease;
         outline: 10px black solid;
     }
     #Logo {
@@ -149,6 +149,7 @@
         display: flex;
         flex-direction: row;
         flex-wrap: wrap;
+        transition: left 2s ease;
 
     }
     :global(.Character) {
@@ -183,47 +184,36 @@
     :global(.RotateOnHover:hover) {
         animation: Rotate 3s infinite linear;
     }
+    #TestButton {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        pointer-events: all;
+    }
+    :global(#ChangeLog h2) {
+        margin: 0;
+    }
+    :global(#ChangeLog ul) {
+        margin: 0;
+    }
+    :global(#ChangeLog > div) {
+        margin-bottom: 5%;
+    }
 </style>
 <div id="Bricks"></div>
 <div id="FrostBackground"></div>
 <div id="FindPartyPanel">
     <button>Quick Party</button>
-    <button on:click={()=>{MoveBackgroundIn()}}>Private Party</button>
+    <button on:click={()=>{MovePartyScreenIn()}}>Private Party</button>
     <button>Find Party</button>
 </div>
 <h1 id="ChangeLogTitle">Change Log</h1>
-<div id="ChangeLog">
-    <h1>0.1 Added A Party System</h1>
-    <p>We made the Main Page</p>
-</div>
+<div id="ChangeLog"></div>
 <div id="PartyScreen">
-    <div id="SelectCharacter">
-        <div class="Character">
-            <img src="/images/characters/bob/Wheel.png" class="RotateOnHover">
-            <img src="/images/characters/bob/Face.png" style="height:60%;pointer-events: none;">
-        </div>
-        <div class="Character">
-            <img src="/images/characters/bob/RedWheel.png" class="RotateOnHover">
-            <img src="/images/characters/bob/RedFace.png" style="height:60%;pointer-events: none;">
-        </div>
-        <div class="Character">
-            <img src="/images/characters/felix.png">
-        </div>
-        <div class="Character">
-            <img src="/images/characters/FixFox.png">
-        </div>
-        <div class="Character">
-            <img src="/images/characters/PirateSlime.png">
-        </div>
-        <div class="Character">
-            <img src="/images/characters/PurpleSlime.png">
-        </div>
-        <div class="Character">
-            <img src="/images/characters/Ian.png">
-        </div>
-        <div class="Character">
-            <img src="/images/characters/Svæin.png">
-        </div>
+    <div id="SelectCharacter"></div>
+    <button id="TestButton" on:click={()=>{MovePartyIsSelected()}}>Done</button>
+    <div id="PartyList">
+
     </div>
 </div>
 <div id="FadeOut"></div>
@@ -240,13 +230,12 @@
         if (!user.ok) {
             window.location.href = "/login";
         } 
+        generateChangeLog();
+        GenerateCharacters();
+        
         AnimationLoop();
     });
-
-    function MoveBackgroundIn() {
-        document.getElementById("PartyScreen").style.top = 0;
-        document.getElementById("PartyScreen").style.bottom = 0;
-    }
+    
     // Animation Loop
     let MovingElements = new Array();
     let ScrollSpeed = 40;
@@ -287,5 +276,85 @@
         }
 
         requestAnimationFrame(AnimationLoop);
+    }
+    function MovePartyScreenIn() {
+        document.getElementById("PartyScreen").style.top = 0;
+        document.getElementById("PartyScreen").style.bottom = 0;
+    }
+    function MovePartyScreenOut() {
+        document.getElementById("PartyScreen").style.top = "-100%";
+        document.getElementById("PartyScreen").style.bottom = "calc(100% + 10px)";
+    }
+    function MovePartyIsSelected() {
+        document.getElementById("PartyScreen").style.backgroundPositionX = -document.getElementById("PartyScreen").offsetWidth + "px";
+        document.getElementById("SelectCharacter").style.left = "-50%";
+    }
+    function MovePartyIsNotSelected() {
+        document.getElementById("PartyScreen").style.backgroundPositionX = "0px";
+        document.getElementById("SelectCharacter").style.left = "50%";
+    }
+    async function generateChangeLog() {
+        let changelog = await(await fetch(window.location.origin+'/api/info/changelog', {
+            method: 'GET',
+            headers: {
+	    		'Content-Type': 'application/json',
+	    	}
+        })).json()
+
+        var changelogPanel = document.getElementById('ChangeLog');
+
+        for (let i = 0; i < changelog.length; i++) {
+            let change = document.createElement("div");
+
+            let title = document.createElement("h1");
+            title.innerHTML = changelog[i].version + ": " + changelog[i].title;
+            change.appendChild(title);
+
+            let description = document.createElement("p");
+            description.innerHTML = changelog[i].description;
+            change.appendChild(description);
+
+            let changesTitle = document.createElement("h2");
+            changesTitle.innerText = "Changes:";
+            change.appendChild(changesTitle);
+
+            let changeList = document.createElement("ul")
+            for (let j = 0; j < changelog[i].changes.length; j++) {
+                let changeEntry = document.createElement("li");
+                changeEntry.innerHTML = changelog[i].changes[j];
+                changeList.appendChild(changeEntry);
+            }
+            change.appendChild(changeList);
+
+            changelogPanel.appendChild(change);
+        }
+    }
+    async function GenerateCharacters() {
+        let Parent = document.getElementById("SelectCharacter");
+        Parent.innerHTML = "";
+        
+        let characters = await(await fetch(window.location.origin+'/api/info/characters', {
+            method: 'GET',
+            headers: {
+	    		'Content-Type': 'application/json',
+	    	}
+        })).json();
+
+        for (let i = 0; characters && i < characters.length; i++) {
+            let Div = document.createElement("div");
+            Div.classList.add("Character");
+            for (let i1 = 0; i1 < characters[i].Visuals.length; i1++) {
+                let img = document.createElement("img");
+                img.src = "/images/characters/" + characters[i].Visuals[i1].Texture + ".png";
+
+                if (characters[i].Visuals[i1].class) 
+                    img.classList.add(characters[i].Visuals[i1].class);
+                if (characters[i].Visuals[i1].Style)
+                    img.style = characters[i].Visuals[i1].Style;
+                Div.appendChild(img);
+            }
+
+            Parent.appendChild(Div);
+        }
     }
 </script>
