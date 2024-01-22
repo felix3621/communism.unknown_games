@@ -1,3 +1,4 @@
+var fs = require('fs');
 const logger = require('./logger.cjs');
 
 module.exports = (process, trace) => {
@@ -11,12 +12,12 @@ module.exports = (process, trace) => {
         process.exit(1);
     })
     
-    process.on('unhandledRejection', async (reason, promise) => {
-        logger.error(`unhandledRejection at: ${reason.stack}\n Reason: ${reason}`,trace);
+    process.on('unhandledRejection', async (reason) => {
+        logger.error(`unhandledRejection: ${reason.stack}`,trace);
         process.exit(1);
     })
     
     process.on('uncaughtException', (error) => {
-        logger.error(`uncaughtException: ${error}`,trace);
+        logger.error(`uncaughtException: ${error.stack}`,trace);
     })
 }

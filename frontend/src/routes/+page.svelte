@@ -243,23 +243,83 @@
         top: 9%;
         transition: transform 2s ease;
     }
-    #EnterDoor {
+    #LeaveParty {
         position: absolute;
         bottom: 0;
         left: 50%;
         transform: translate(-50%,0);
     }
+    #PartyList {
+        position: absolute;
+        top: 25%;
+        bottom: 25%;
+        left: 0;
+        width: 10%;
+        max-width: 200px;
+        background-color: rgb(25, 25, 25);
+        outline: 5px black solid;
+        padding: 5px 2px 5px 5px;
+        border-radius: 0 25px 25px 0;
+    }
+    :global(.PlayerDisplay) {
+        height: 50px;
+        max-height: 20%;
+    }
+    :global(.PlayerDisplay > div) {
+        height: 100%;
+        aspect-ratio: 1/1;
+        float: left;
+    }
+    :global(.PlayerDisplay > h1) {
+        width: fit-content;
+        margin: 0;
+        font-size: small;
+        float:left;
+    }
+    #FindParty {
+        position: absolute;
+        left: -150%;
+        top: 50%;
+        transform: translate(-50%,-50%);
+        background-color: rgb(50, 50, 50);
+        outline: 5px black solid;
+        padding: 15px;
+        transition: left 2s ease;
+        text-align: center;
+        border-radius: 25px;
+        filter: drop-shadow(5mm 5mm 5mm black);
+    }
+    :global(input) {
+        background-color: black;
+        color: white;
+        padding: 5px 10px 0 10px;
+        outline: 2px gray solid;
+        color: white;
+    }
+    :global(button) {
+        background-color: black;
+        color: white;
+        padding: 5px 10px 0 10px;
+        outline: 2px gray solid;
+        color: white;
+    }
 </style>
 <div id="Bricks"></div>
 <div id="FrostBackground"></div>
 <div id="FindPartyPanel">
-    <button>Quick Party</button>
-    <button on:click={()=>{MovePartyScreenIn()}}>Private Party</button>
-    <button>Find Party</button>
+    <button on:click={()=>{PartyMode="quickPlay"; OpenPartyScreen()}}>Quick Party</button>
+    <button on:click={()=>{PartyMode="private"; OpenPartyScreen()}}>Private Party</button>
+    <button on:click={()=>{PartyMode="FindParty"; OpenPartyScreen()}}>Find Party</button>
 </div>
 <h1 id="ChangeLogTitle">Change Log</h1>
 <div id="ChangeLog"></div>
 <div id="PartyScreen">
+    <div id="FindParty">
+        <h1>Find Party</h1>
+        <p id="FindPartyError" style="color: red;"></p>
+        <input id="FindPartyCode" type="text" placeholder="Party Code..." style="font-size: 20px;">
+        <button style="font-size: 20px;" on:click={()=>{FindParty()}}>Find</button>
+    </div>
     <div id="Door">
         <div id="DoorFill"></div>
         <img id="DoorFrame" src="/images/assets/DoorFrame.png">
@@ -267,15 +327,74 @@
         <img id="RightDoor" src="/images/assets/RightDoor.png">
     </div>
     <div id="SelectCharacter"></div>
-    <button id="LeftButton" on:click={()=>{MovePartyScreenLeft()}}>MovePartyIsLeft</button>
-    <button id="RightButton" on:click={()=>{MovePartyScreenRight()}}>MovePartyScreenRight</button>
-    <button id="EnterDoor" on:click={()=>{EnterDoor()}}>EnterDoor</button>
-    <div id="PartyList"></div>
+    <button id="LeaveParty" on:click={()=>{ClosePartyScreen();}}>Leave Party</button>
+    <div id="PartyList">
+        <div class="PlayerDisplay">
+            <div>
+            </div>
+            <h1>Display Name</h1>
+        </div>
+    </div>
 </div>
 <div id="FadeOut"></div>
 <img id="Logo" src="/images/logo.png">
-<script>
+<script> 
     import { onMount } from "svelte";
+    var Socket = null;
+    var MaxPartySize = 4;
+    var PartyMode = "";
+    function sendOnEnter(event, func) {
+        if (event.key === 'Enter') {
+            func()
+        }
+    }
+    function FindParty() {
+        console.log(document.getElementById('FindPartyCode').value);
+        PartyMode = "code/" + document.getElementById('FindPartyCode').value;
+        CreatePartySocketConnection();
+    }
+    // Create The Party Socket Connection
+    function CreatePartySocketConnection() {
+        Socket = new WebSocket(`wss://${window.location.host}/socket/party/${PartyMode}`);
+
+        Socket.onopen = () => {
+            console.log('Connected to server');
+        };
+
+        Socket.onmessage = (event) => {
+            let message = JSON.parse(event.data);
+
+            // Page Sync
+            if (message.PartyPage != null && typeof message.PartyPage == "float") {
+                MovePageTo(message.PartyPage);
+            }
+            // Player Party
+            if (message.Players) {
+                GeneratePlayerList(message.Players);
+                console.log(message.Players);
+            }
+        }
+
+        Socket.onclose = (event) => {
+            console.log('Connection closed', event);
+            if (event.code == 1008) {
+                setTimeout(() => {window.location.href = "/"},1000)
+            } else if (event.code == 3000) { // if 3000 don't reload
+
+            } else if (event.code == 3001) { // if 3001 no party found 
+                Socket = null;
+                console.log("Error")
+                document.getElementById("FindPartyError").innerHTML = "Failed To Find Party"
+            }
+             else if (event.code != 3000) { 
+                setTimeout(CreatePartySocketConnection, 1000)
+            }
+        };
+
+        Socket.onerror = (error) => {
+            console.error('WebSocket error:', error);
+        };
+    }
     onMount(async() => {
         let user = await fetch(window.location.origin+'/api/account/login', {
             method: 'POST',
@@ -295,12 +414,18 @@
                 Element:document.getElementById("Door"),
                 Page:3,
                 MovingBackground: true
+            },
+            {
+                Element:document.getElementById("FindParty"),
+                Page:-1,
+                MovingBackground: true
             }
         ]
         generateChangeLog();
         GenerateCharacters();
         
         AnimationLoop();
+        document.getElementById('FindPartyCode').addEventListener("keypress",(e) => sendOnEnter(e, FindParty))
     });
     
     // Animation Loop
@@ -349,34 +474,65 @@
 
         requestAnimationFrame(AnimationLoop);
     }
-    function MovePartyScreenIn() {
+    // Open the Party Screen
+    function OpenPartyScreen() {
         document.getElementById("PartyScreen").style.top = 0;
         document.getElementById("PartyScreen").style.bottom = 0;
         document.getElementById("PartyScreen").style.backgroundPositionX = "";
         document.getElementById("SelectCharacter").style.left = "";
+        if (PartyMode != "FindParty") {
+            console.log(PartyMode);
+            MovePageTo(0);
+            document.getElementById("PartyList").style.filter = "opacity(1)";
+            if (Socket) {
+                Socket.close();
+                Socket = null;
+            }
+            CreatePartySocketConnection();
+        } else {
+            document.getElementById("PartyList").style.filter = "opacity(0)";
+            MovePageTo(-1);
+        }
+        
+        GeneratePlayerList(new Array());
     }
-    function MovePartyScreenOut() {
+    // Close Party Screen
+    function ClosePartyScreen() {
         document.getElementById("PartyScreen").style.top = "-100%";
         document.getElementById("PartyScreen").style.bottom = "calc(100% + 10px)";
+        if (Socket) {
+            Socket.send(JSON.stringify({socket:"close"}));
+            Socket.close(3000);
+        }
     }
     var CurrentPage = 0;
     var MovingPartsPage;
+    // Back One Page
     function MovePartyScreenLeft() {
         MovePageTo(CurrentPage-1);
     }
+    // Next Page
     function MovePartyScreenRight() {
         MovePageTo(CurrentPage+1);
     }
     function MovePageTo(index) {
         CurrentPage = index;
         document.getElementById("PartyScreen").style.backgroundPositionX = -document.getElementById("PartyScreen").offsetWidth*index + "px";
-        
+        let MoveBackground = false;
         for (let i = 0; i < MovingPartsPage.length; i++) {
             if (MovingPartsPage[i].Page==index) {
                 MovingPartsPage[i].Element.style.left = "50%";
+                if (MovingPartsPage[i].MovingBackground) {
+                    MoveBackground = MovingPartsPage[i].MovingBackground;
+                }
             } else
                 MovingPartsPage[i].Element.style.left = 50 + (MovingPartsPage[i].Page - index)*100 + "%";
-
+        }
+        if (MoveBackground) {
+            setTimeout(()=>{BackgroundScroll = true;}, 2000);
+            
+        } else {
+            BackgroundScroll = false;
         }
     }
     function EnterDoor() {
@@ -438,20 +594,44 @@
         })).json();
 
         for (let i = 0; characters && i < characters.length; i++) {
-            let Div = document.createElement("div");
-            Div.classList.add("Character");
-            for (let i1 = 0; i1 < characters[i].Visuals.length; i1++) {
-                let img = document.createElement("img");
-                img.src = "/images/characters/" + characters[i].Visuals[i1].Texture + ".png";
+            Parent.appendChild(GeneratePlayerCharacter(characters[i]));
+        }
+    }
+    function GeneratePlayerCharacter(Character) {
+        let Div = document.createElement("div");
+        Div.classList.add("Character");
+        for (let i = 0; i < Character.Visuals.length; i++) {
+            let img = document.createElement("img");
+            img.src = "/images/characters/" + Character.Visuals[i].Texture + ".png";
 
-                if (characters[i].Visuals[i1].class) 
-                    img.classList.add(characters[i].Visuals[i1].class);
-                if (characters[i].Visuals[i1].Style)
-                    img.style = characters[i].Visuals[i1].Style;
-                Div.appendChild(img);
+            if (Character.Visuals[i].class) 
+                img.classList.add(Character.Visuals[i].class);
+            if (Character.Visuals[i].Style)
+                img.style = Character.Visuals[i].Style;
+            Div.appendChild(img);
+        }
+        return Div;
+    }
+    function GeneratePlayerList(Players) {
+        let Parent = document.getElementById("PartyList");
+        Parent.innerHTML = "";
+        for (let i = 0; i < Players.length || i < MaxPartySize; i++) {
+            let Container = document.createElement("div");
+            Container.classList.add("PlayerDisplay");
+            if (Players.length>i) {
+                if (Players[i].Character!=null) {
+                    Container.appendChild(GeneratePlayerCharacter(Players[i].Character));
+                }
+
+                let WaitingForPlayer = document.createElement("h1");
+                WaitingForPlayer.innerHTML = Players[i].DisplayName;
+                Container.appendChild(WaitingForPlayer);
+            } else {
+                let WaitingForPlayer = document.createElement("h1");
+                WaitingForPlayer.innerHTML = "WaitingForPlayer";
+                Container.appendChild(WaitingForPlayer);
             }
-
-            Parent.appendChild(Div);
+            Parent.appendChild(Container);
         }
     }
 </script>

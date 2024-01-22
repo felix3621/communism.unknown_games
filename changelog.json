@@ -1,6 +1,6 @@
 [
     {
-        "version": 0.1,
+        "version": "0.0.1",
         "title": "Home",
         "description": "Created homepage",
         "changes": [
@@ -13,7 +13,7 @@
         ]
     },
     {
-        "version": 0.2,
+        "version": "0.0.2",
         "title": "account system",
         "description": "Created account system",
         "changes": [
@@ -23,13 +23,21 @@
         ]
     },
     {
-        "version": 0.3,
+        "version": "0.0.3",
         "title": "Change log",
         "description": "Changes can be seen by user",
         "changes": [
             "Removed changelog placeholder",
             "Show changelog gotten from server",
             "(backend) get changelog"
+        ]
+    },
+    {
+        "version": "0.0.4",
+        "title": "Party",
+        "description": "Working party system",
+        "changes": [
+            "TODO: ADD CONTENT"
         ]
     }
 ]

@@ -1,8 +1,12 @@
 const WebSocket = require('ws');
+const url = require('url');
 const auth = require('../modules/authentication.cjs');
 const db = require('../modules/database.cjs');
-const fr = require('../modules/fileReader.cjs');
-const logger = require('../modules/logger.cjs');
+
+const parties = require('./party/parties.cjs');
+
+const TPS = 10;
+const disconnectTimeout = 30 * TPS;
 
 var users = new Array();
 
@@ -14,10 +18,10 @@ async function authenticate(cookies) {
     var cookie = cookies
         .split(';')
             .map(cookie => cookie.trim())
-                .find(cookie => cookie.startsWith('userToken=')
+                .find(cookie => cookie.startsWith('UG_userToken=')
                 )
     if (cookie) {
-        cookie = cookie.replace(/^userToken=/, '');
+        cookie = cookie.replace(/^UG_userToken=/, '');
     } else {
         return null
     }
@@ -47,39 +51,97 @@ async function authorizeSocket(socket, request) {
     return username
 }
 
-function ping() {
-    setTimeout(() => {
-        webSocketServer.clients.forEach((client) => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify({ping: "keep alive"}));
+setInterval(() => {
+    webSocketServer.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({ping: "keep alive"}));
+        }
+    });
+
+    for (let i = 0; i < users.length; i++) {
+        if (users[i].socket) {
+            users[i].disconnectTimeout = disconnectTimeout
+        } else {
+            users[i].disconnectTimeout--;
+
+            if (users[i].disconnectTimeout <= 0) {
+                parties.removePlayer(users[i].username);
+                users.splice(i,1);
+                i--;
             }
-        });
-        ping()
-    }, 500);
+        }
+    }
+
+    parties.Tick()
+}, 1000/TPS);
+
+function connectParty(username, socket, address) {
+    if (address.startsWith("/socket/party/private")) {
+        parties.createParty(username, socket);
+    } else if (address.startsWith("/socket/party/code")) {
+        address = address.split("/");
+        address = address.splice(address.indexOf("code")+1);
+        address = address.join("/");
+
+        let result = parties.joinParty(address, username, socket);
+
+        if (!result) {
+            socket.close(3001,"Game not found");
+        }
+    } else {
+        parties.quickParty(username, socket);
+    }
 }
-ping()
 
 // Handle WebSocket connections
 webSocketServer.on('connection', async(socket, request) => {
     let username = await authorizeSocket(socket, request);
     if (!username) return;
 
-    let dbuser = await (await db).collection("accounts").findOne({username: username});
+    let addr = url.parse(request.url).pathname;
 
-    sysUser = users.find(user => user.user.username == dbuser.username)
+    let usr = users.find(elem => elem.user.username == username);
 
-    if (sysUser)
-        sysUser.socket.close(1008, "another instance")
+    if (usr) {
+        if (usr.socket) {
+            usr.socket.close(1008, "another instance");
+        }
 
-    users.push({user: dbuser, socket: socket})
+        usr.socket = socket;
+
+        if (addr != usr.addr) {
+            parties.removePlayer(username);
+
+            connectParty(username, socket, addr);
+        } else {
+            parties.UpdateSocket(username, socket);
+        }
+
+    } else {
+        let dbuser = await (await db).collection("accounts").findOne({username: username});
+
+        delete dbuser.password;
+        delete dbuser._id;
+
+        users.push({user: dbuser, socket: socket, disconnectTimeout: disconnectTimeout, addr: addr})
+
+        connectParty(username, socket, addr);
+    }
 
     socket.on('message', (msg) => {
         var msg = JSON.parse(msg);
+
+        if (msg.socket == "close") {
+            parties.removePlayer(username);
+            socket.close(3000, "closed by client");
+            users.splice(users.indexOf(elem => elem.user.username == username));
+        }
     });
 
     //handle disconnects
     socket.on('close', (id) => {
-        users.splice(users.indexOf(elem => elem.user.username == username),1)
+        if (id != 3000)
+            users.find(elem => elem.user.username == username).socket = null;
     });
 });
 

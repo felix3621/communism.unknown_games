@@ -15,13 +15,14 @@ const httpServer = http.createServer((req, res) => {
 });
 
 httpServer.on('upgrade', (request, socket, head) => {
-    path = url.parse(request.url).pathname
+    let path = url.parse(request.url).pathname
 
-    if (path == "/socket/party") {
+    if (path.startsWith("/socket/party")) {
         party.wss.handleUpgrade(request, socket, head, (socket) => {
             party.wss.emit('connection', socket, request);
         });
     } else {
+        socket.write('HTTP/1.1 401 Web Socket Protocol Handshake\r\n');
         socket.destroy();
     }
 });
