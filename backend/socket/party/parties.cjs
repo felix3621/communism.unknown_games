@@ -85,6 +85,13 @@ module.exports = {
         let p = new Party(true);
         p.AddPlayer(username, socket);
         p.code = auth.encrypt(code);
+        while (true) {
+            if (p.code.charAt(p.code.length - 1) == "=") {
+                p.code = p.code.substring(0, p.code.length - 1);
+            } else {
+                break;
+            }
+        }
         code++;
         parties.push(p);
     },
@@ -113,20 +120,17 @@ module.exports = {
         if (p)
             p.RemovePlayer(username);
     },
-    UpdateSocket(username, socket) {
-        let p = parties.find(obj => obj.Players.some(player => player.Username == username))
-        if (p)
-            p.Socket = socket;
-    },
     Tick() {
-        //console.log("----------------------------------------------------------------")
         for (let i = 0; i < parties.length; i++) {
             parties[i].Tick();
-            //console.log("||||||||||")
-            //for (let j = 0; j < parties[i].Players.length; j++) {
-            //    console.log(parties[i].Players[j].Username)
-            //}
         }
-        //console.log("----------------------------------------------------------------")
+    },
+    party(username, func) {
+        let p = parties.find(obj => obj.Players.some(player => player.Username == username))
+        if (p) {
+            let pu = p.Players.find(player => player.Username == username);
+
+            pu[func["function"]](func["value"])
+        }
     }
 };

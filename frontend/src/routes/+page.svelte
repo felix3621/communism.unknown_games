@@ -95,9 +95,24 @@
         filter: drop-shadow(2mm 2mm 1mm black);
         display: flex;
         flex-direction: column;
-        overflow-x: hidden;
-        overflow-y: auto;
+        overflow: hidden;
         padding: 10px;
+        padding-right: 0px;
+    }
+    #ChangeLog > * {
+        overflow-y: auto;
+        height: 100%;
+    }
+    #ChangeLog > *::-webkit-scrollbar {
+        border-radius: 25px;
+        background-color: rgb(25, 25, 25);
+        outline: 2px black solid;
+    }
+    #ChangeLog > *::-webkit-scrollbar-thumb {
+        border-radius: 25px;
+        background-color: rgb(75, 75, 75);
+        outline: 2px black solid;
+
     }
     :global(#ChangeLog h1, #ChangeLog p) {
         width: fit-content;
@@ -202,7 +217,7 @@
     :global(#ChangeLog ul) {
         margin: 0;
     }
-    :global(#ChangeLog > div) {
+    :global(#ChangeLog > * > div) {
         margin-bottom: 5%;
     }
     #Door {
@@ -264,6 +279,7 @@
     :global(.PlayerDisplay) {
         height: 50px;
         max-height: 20%;
+        border-radius: 50%;
     }
     :global(.PlayerDisplay > div) {
         height: 100%;
@@ -303,6 +319,8 @@
         outline: 2px gray solid;
         color: white;
     }
+    #gameCode {
+    }
 </style>
 <div id="Bricks"></div>
 <div id="FrostBackground"></div>
@@ -312,8 +330,11 @@
     <button on:click={()=>{PartyMode="FindParty"; OpenPartyScreen()}}>Find Party</button>
 </div>
 <h1 id="ChangeLogTitle">Change Log</h1>
-<div id="ChangeLog"></div>
+<div id="ChangeLog">
+    <div id="LogContainer"></div>
+</div>
 <div id="PartyScreen">
+    <div id="gameCode"></div>
     <div id="FindParty">
         <h1>Find Party</h1>
         <p id="FindPartyError" style="color: red;"></p>
@@ -343,6 +364,7 @@
     var Socket = null;
     var MaxPartySize = 4;
     var PartyMode = "";
+
     function sendOnEnter(event, func) {
         if (event.key === 'Enter') {
             func()
@@ -363,15 +385,19 @@
 
         Socket.onmessage = (event) => {
             let message = JSON.parse(event.data);
+            if (!message.ping)
+                console.log(message);
 
             // Page Sync
-            if (message.PartyPage != null && typeof message.PartyPage == "float") {
+            if (message.PartyPage != null && typeof message.PartyPage == "number") {
                 MovePageTo(message.PartyPage);
             }
             // Player Party
             if (message.Players) {
                 GeneratePlayerList(message.Players);
-                console.log(message.Players);
+            }
+            if (message.code) {
+                document.getElementById("gameCode").innerText = message.code
             }
         }
 
@@ -408,7 +434,7 @@
         MovingPartsPage = [
             {
                 Element:document.getElementById("SelectCharacter"),
-                Page:1
+                Page:0
             },
             {
                 Element:document.getElementById("Door"),
@@ -418,7 +444,8 @@
             {
                 Element:document.getElementById("FindParty"),
                 Page:-1,
-                MovingBackground: true
+                MovingBackground: true,
+                ShowParty: false
             }
         ]
         generateChangeLog();
@@ -519,11 +546,15 @@
         CurrentPage = index;
         document.getElementById("PartyScreen").style.backgroundPositionX = -document.getElementById("PartyScreen").offsetWidth*index + "px";
         let MoveBackground = false;
+        let ShowParty = true;
         for (let i = 0; i < MovingPartsPage.length; i++) {
             if (MovingPartsPage[i].Page==index) {
                 MovingPartsPage[i].Element.style.left = "50%";
-                if (MovingPartsPage[i].MovingBackground) {
+                if (MovingPartsPage[i].MovingBackground != null) {
                     MoveBackground = MovingPartsPage[i].MovingBackground;
+                }
+                if (MovingPartsPage[i].ShowParty != null) {
+                    ShowParty = MovingPartsPage[i].ShowParty;
                 }
             } else
                 MovingPartsPage[i].Element.style.left = 50 + (MovingPartsPage[i].Page - index)*100 + "%";
@@ -533,6 +564,11 @@
             
         } else {
             BackgroundScroll = false;
+        }
+        if (ShowParty) {
+            document.getElementById("PartyList").style.filter = "opacity(1)";
+        } else {
+            document.getElementById("PartyList").style.filter = "opacity(0)";
         }
     }
     function EnterDoor() {
@@ -554,7 +590,7 @@
 	    	}
         })).json()
 
-        var changelogPanel = document.getElementById('ChangeLog');
+        var changelogPanel = document.getElementById('LogContainer');
 
         for (let i = 0; i < changelog.length; i++) {
             let change = document.createElement("div");
@@ -579,7 +615,7 @@
             }
             change.appendChild(changeList);
 
-            changelogPanel.appendChild(change);
+            changelogPanel.insertBefore(change, changelogPanel.firstChild);
         }
     }
     async function GenerateCharacters() {
@@ -594,7 +630,16 @@
         })).json();
 
         for (let i = 0; characters && i < characters.length; i++) {
-            Parent.appendChild(GeneratePlayerCharacter(characters[i]));
+            let Character = GeneratePlayerCharacter(characters[i])
+            let index = i;
+            Character.addEventListener("click",()=>{
+                if (Socket!=null) {
+                    Socket.send(JSON.stringify({party: {function:"SelectCharacter",value:index}}));
+                } else {
+                    CreatePartySocketConnection();
+                }
+            });
+            Parent.appendChild(Character);
         }
     }
     function GeneratePlayerCharacter(Character) {

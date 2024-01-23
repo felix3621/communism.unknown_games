@@ -109,13 +109,9 @@ webSocketServer.on('connection', async(socket, request) => {
 
         usr.socket = socket;
 
-        if (addr != usr.addr) {
-            parties.removePlayer(username);
+        parties.removePlayer(username);
 
-            connectParty(username, socket, addr);
-        } else {
-            parties.UpdateSocket(username, socket);
-        }
+        connectParty(username, socket, addr);
 
     } else {
         let dbuser = await (await db).collection("accounts").findOne({username: username});
@@ -135,6 +131,9 @@ webSocketServer.on('connection', async(socket, request) => {
             parties.removePlayer(username);
             socket.close(3000, "closed by client");
             users.splice(users.indexOf(elem => elem.user.username == username));
+        }
+        if (msg.party) {
+            parties.party(username, msg.party);
         }
     });
 
