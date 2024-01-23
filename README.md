@@ -1,3 +1,9 @@
+# Installing required packages:
+
+```bash
+npm run install
+```
+
 # STARTING SERVERS:
 
 ### Starting frontend:

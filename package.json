@@ -4,7 +4,8 @@
 	"private": true,
 	"scripts": {
 		"frontend": "cd frontend && npm run dev",
-		"backend": "cd backend && npm run start"
+		"backend": "cd backend && npm run start",
+		"install": "cd backend && npm i && cd ../frontend && npm i"
 	},
 	"type": "module"
 }
