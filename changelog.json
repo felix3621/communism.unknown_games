@@ -37,7 +37,8 @@
         "title": "Party",
         "description": "Working party system",
         "changes": [
-            "TODO: ADD CONTENT"
+            "Create and join private party",
+            "Quick party (public)"
         ]
     }
 ]
