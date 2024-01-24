@@ -15,26 +15,33 @@ class Party {
         this.code;
         this.active = false;
         this.PartyPage = 0;
+        this.SelectedGame = -1;
     }
     // Add Player To Party
     AddPlayer(username, Socket) {
         this.Players.push(new Player(username, Socket, this));
         this.PartyPage = 0;
+        this.SendInfo;
     }
     RemovePlayer(username) {
-        let player = this.Players.find(obj => (obj.Username == username))
-        if (player) {
-            let index = this.Players.indexOf(player);
-            this.Players.splice(index, 1);
-            if (this.Players.length > 0)
-                this.Players[0].PartyLeader = true;
-            else
-                parties.slice(parties.indexOf(this), 1);
+        while (this.Players.find(obj => (obj.Username == username))) {
+            let player = this.Players.find(obj => (obj.Username == username))
+            if (player) {
+                player.Disconnect();
+                let index = this.Players.indexOf(player);
+                this.Players.splice(index, 1);
+                if (this.Players.filter(x => x.Ready).length == this.Players.length && this.PartyPage == 0)
+                    this.PartyPage = 1;
+            }
         }
     }
     // Tick Function
     Tick() {
         this.SendInfo();
+        if (this.Players.length > 0)
+            this.Players[0].PartyLeader = true;
+        else
+            parties.slice(parties.indexOf(this), 1);
     }
     // Send Info To Players True Socket
     SendInfo() {
@@ -44,10 +51,12 @@ class Party {
             let Player = {};
             Player.DisplayName = this.Players[i].DisplayName;
             Player.Character = this.Players[i].Character;
-            Player.Ready = this.Players[i].Ready;
+            if (!this.active)
+                Player.Ready = this.Players[i].Ready;
             rtn.Players.push(Player);
         }
         rtn.PartyPage = this.PartyPage;
+        rtn.SelectedGame = this.SelectedGame;
         if (!this.active)
             rtn.code = this.code;
         rtn.private = this.private;
@@ -61,8 +70,12 @@ class Party {
         }
     }
     Start() {
-        if (this.Players.filter(x => x.Ready).length == this.Players.length)
-            console.log("start")
+        if (this.Players.filter(x => x.Ready).length == this.Players.length && this.SelectedGame >= 0) {
+            this.Players.forEach(element => {
+                let dir = JSON.parse(fa.read("./shared/games.json"))[this.SelectedGame].Address;
+                element.Socket.send(JSON.stringify({game:dir}))
+            });
+        }
     }
 }
 class Player {
@@ -78,31 +91,43 @@ class Player {
     }
     // Player Is Ready
     ReadyPlayer() {
-        if (!this.party.active && this.party.PartyPage == 0) {
+        if (!this.party.active) {
             this.Ready = !this.Ready;
             if (this.party.Players.filter(x => x.Ready).length == this.party.Players.length)
                 this.party.PartyPage=1;
+            else
+                this.party.PartyPage=0;
+
+            this.party.SendInfo();
         }
     }
     Start() {
-        if (this.PartyLeader && !this.party.active)
+        if (this.PartyLeader && !this.party.active) {
             this.party.Start();
+            this.party.SendInfo();
+        }
     }
     Disconnect() {
         
     }
     SelectCharacter(CharacterIndex) {
-        this.Character = JSON.parse(fa.read('./shared/characters.json'))[CharacterIndex];
+        if (!this.party.active) {
+            this.Character = JSON.parse(fa.read('./shared/characters.json'))[CharacterIndex];
+            this.party.SendInfo();
+        }
     }
-    VoteGameMode() {
-        
-    }
-    SelectGameMode() {
-        
+    SelectGameMode(Index) {
+        if (this.PartyLeader) {
+            this.party.SelectedGame = Index;
+            this.party.PartyPage = 2
+            this.party.SendInfo();
+        }
     }
     MovePage(MoveAmount) {
-        if (this.PartyLeader && this.party.Players.filter(x => x.Ready).length == this.party.Players.length && !this.party.active)
+        if (this.PartyLeader && this.party.Players.filter(x => x.Ready).length == this.party.Players.length && !this.party.active) {
             this.party.PartyPage = this.party.PartyPage+MoveAmount>=0?this.party.PartyPage+MoveAmount:0;
+            this.party.SendInfo();
+        }
     }
 }
 
@@ -171,10 +196,7 @@ module.exports = {
         if (p) {
             let pu = p.Players.find(player => player.Username == username);
 
-            console.log(func)
-
             if (pu[func.function]) {
-                console.log("yeet")
                 if (func.value != null)
                     pu[func.function](func.value)
                 else

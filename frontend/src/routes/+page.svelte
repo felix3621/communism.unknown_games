@@ -1,3 +1,4 @@
+<head><title>Main Menu</title></head>
 <style>
     #Bricks {
         position: fixed;
@@ -228,12 +229,12 @@
         transform: translate(-50%,-50%);
         aspect-ratio: 419/508;
         transition: transform 2s ease 2s, filter 2s ease 3s, left 2s ease;
-        pointer-events: none;
     }
     #DoorFrame {
         position: absolute;
         height: 100%;
         filter: drop-shadow(5mm 5mm 5mm black);
+        pointer-events: none;
     }
     #DoorFill {
         position: absolute;
@@ -241,8 +242,9 @@
         bottom: 4%;
         left: 5%;
         right: 5%;
-        background-color: white;
+        background-color: black;
         border-radius: 50% 50% 0 0;
+        pointer-events: none;
     }
     #LeftDoor {
         position: absolute;
@@ -250,6 +252,7 @@
         left: 11.7%;
         top: 9%;
         transition: transform 2s ease;
+        pointer-events: none;
     }
     #RightDoor {
         position: absolute;
@@ -257,6 +260,7 @@
         right: 12%;
         top: 9%;
         transition: transform 2s ease;
+        pointer-events: none;
     }
     #LeaveParty {
         position: absolute;
@@ -373,6 +377,49 @@
         left: 50%;
         bottom:28px;
         transform: translate(-50%,0);
+        transition: left 2s ease;
+    }
+    #SelectGame {
+        position: absolute;
+        transform: translate(-50%,-50%);
+        top: 50%;
+        transition: left 2s ease;
+        background-color: rgb(50,50,50);
+        border: 5px solid black;
+        border-radius: 25px;
+        filter: drop-shadow(2mm 2mm 1mm black);
+        width: 50%;
+        height: 50%;
+        padding: 25px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, calc(50% - 10px)));
+        overflow-y: auto;
+        grid-gap: 17.5px;
+    }
+    #SelectGame::-webkit-scrollbar {
+        background-color: rgb(25, 25, 25);
+        border-radius: 25px;
+    }
+    #SelectGame::-webkit-scrollbar-thumb {
+        background-color: rgb(100, 100, 100);
+        border: 1px white solid;
+        border-radius: 25px;
+    }
+    :global(.game) {
+        text-align: center;
+        background-color: rgb(25,25,25);
+        outline: 5px black solid;
+        border-radius: 25px;
+        transition: 0.5s;
+    }
+    :global(.game p, .game h2) {
+        margin: 0;
+        pointer-events: none;
+    }
+    :global(.game img) {
+        width: 100%;
+        border-radius: 25px 25px 0 0;
+        pointer-events: none;
     }
 </style>
 <div id="Bricks"></div>
@@ -401,6 +448,7 @@
         <img id="RightDoor" src="/images/assets/RightDoor.png">
     </div>
     <div id="SelectCharacter"></div>
+    <div id="SelectGame">TEST</div>
     <button id="LeaveParty" on:click={()=>{ClosePartyScreen();}}>Leave Party</button>
     <div id="PartyList">
         <div class="PlayerDisplay">
@@ -456,9 +504,11 @@
                 if (message.startAllowed) {
                     document.getElementById("RightArrow").style.filter = "opacity(1)";
                     document.getElementById("LeftArrow").style.filter = "opacity(1)";
+                    document.getElementById("Door").style.cursor = "pointer";
                 } else {
                     document.getElementById("RightArrow").style.filter = "opacity(0)";
                     document.getElementById("LeftArrow").style.filter = "opacity(0)";
+                    document.getElementById("Door").style.cursor = "not-allowed";
                 }
                 if (document.getElementById("gameCode")) {
                     if (message.code) {
@@ -467,13 +517,37 @@
                         document.getElementById("gameCode").innerText = ""
                     }
                 }
+                let index = 0;
+                Array.from(document.getElementsByClassName("game")).forEach(element => {
+                    if (typeof message.startAllowed == "boolean") {
+                        element.style.cursor = "pointer";
+                    } else {
+                        element.style.cursor = "not-allowed"
+                    }
+                    if (message.SelectedGame === index) {
+                        //Selected
+                        element.style.filter = "drop-shadow(0 0 3mm white)";
+                        element.style.transform = "scale(0.9, 0.9)";
+                    } else {
+                        //not selected
+                        element.style.filter = "";
+                        element.style.transform = "";
+                    }
+                    index ++;
+                });
+                if (message.game) {
+                    EnterDoor()
+                    setTimeout(() => {
+                        window.location.href = message.game;
+                    }, 3000);
+                }
             }
         }
 
         Socket.onclose = (event) => {
             console.log('Connection closed', event);
             if (event.code == 1008) {
-                setTimeout(() => {window.location.href = "/"},1000)
+                //setTimeout(() => {window.location.href = "/"},1000)
             } else if (event.code == 3000) { // if 3000 don't reload
 
             } else if (event.code == 3001) { // if 3001 no party found 
@@ -511,7 +585,7 @@
             },
             {
                 Element:document.getElementById("Door"),
-                Page:3,
+                Page:2,
                 MovingBackground: true
             },
             {
@@ -519,13 +593,30 @@
                 Page:-1,
                 MovingBackground: true,
                 ShowParty: false
+            },
+            {
+                Element:document.getElementById("SelectGame"),
+                Page:1
+            },
+            {
+                Element:document.getElementById("ReadyBtn"),
+                Page:0
             }
         ]
         generateChangeLog();
         GenerateCharacters();
+        GenerateGames();
         
         AnimationLoop();
         document.getElementById('FindPartyCode').addEventListener("keypress",(e) => sendOnEnter(e, FindParty))
+
+        document.getElementById("Door").addEventListener("click", (e) => {
+            if (Socket!=null) {
+                Socket.send(JSON.stringify({party: {function:"Start"}}));
+            } else {
+                CreatePartySocketConnection();
+            }
+        })
     });
     
     // Animation Loop
@@ -547,11 +638,12 @@
         }
         if (Snow) {
             if (SnowNextSpawn<=0) {
-                SnowNextSpawn = Math.random()*0.5;
+                SnowNextSpawn = Math.random()*0.3;
                 let SnowFlake = document.createElement("div");
                 SnowFlake.classList.add("SnowFlake");
                 document.getElementById("FrostBackground").appendChild(SnowFlake);
-                MovingElements.push({Element:SnowFlake,Speed:100})
+                let SpeedFactor = 0.85+Math.random()*1;
+                MovingElements.push({Element:SnowFlake,Speed:100*SpeedFactor})
                 SnowFlake.style.left = (Math.random() * document.body.offsetWidth) + "px";
             } else {
                 SnowNextSpawn -= deltaTime;
@@ -655,7 +747,7 @@
         document.getElementById("RightDoor").style.transform = "translate(100%,0) scale(-0.85,1)";
 
         document.getElementById("Door").style.transform = "translate(-50%,-100%) scale(4,4)";
-        document.getElementById("Door").style.filter = "opacity(0)";
+        //document.getElementById("Door").style.filter = "opacity(0)";
 
         setTimeout(()=>{document.getElementById("PartyScreen").style.transform = "scale(10,10)";},2000);
         setTimeout(()=>{document.getElementById("PartyScreen").style.transform = "";},4000);
@@ -720,6 +812,49 @@
             Parent.appendChild(Character);
         }
     }
+    async function GenerateGames() {
+        let Parent = document.getElementById("SelectGame");
+        Parent.innerHTML = "";
+        
+        let games = await(await fetch(window.location.origin+'/api/info/games', {
+            method: 'GET',
+            headers: {
+	    		'Content-Type': 'application/json',
+	    	}
+        })).json();
+
+        for (let i = 0; games && i < games.length; i++) {
+            let game = document.createElement("div");
+            game.classList.add("game")
+
+            let index = i;
+            game.addEventListener("click",()=>{
+                if (Socket!=null) {
+                    Socket.send(JSON.stringify({party: {function:"SelectGameMode",value:index}}));
+                } else {
+                    CreatePartySocketConnection();
+                }
+            });
+
+            let img = document.createElement("img");
+            img.src = "/images/games/" + games[i].Texture + ".png" ;
+            game.appendChild(img);
+
+            let title = document.createElement("h2");
+            title.innerText = games[i].Name;
+            game.appendChild(title);
+
+            let players = document.createElement("p");
+            if (games[i].RequiredPlayers == games[i].MaxPlayers) {
+                players.innerText = games[i].RequiredPlayers + " Players"
+            } else {
+                players.innerText = games[i].RequiredPlayers + "-" + games[i].MaxPlayers + " Players";
+            }
+            game.appendChild(players);
+
+            Parent.appendChild(game);
+        }
+    }
     function GeneratePlayerCharacter(Character) {
         let Div = document.createElement("div");
         Div.classList.add("Character");
@@ -774,7 +909,7 @@
                 Container.appendChild(PlayerName);
             } else {
                 let WaitingForPlayer = document.createElement("h1");
-                WaitingForPlayer.innerHTML = "WaitingForPlayer";
+                WaitingForPlayer.innerHTML = "Waiting for players";
                 Container.appendChild(WaitingForPlayer);
             }
             Parent.appendChild(Container);

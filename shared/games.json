@@ -4,7 +4,7 @@
         "RequiredPlayers":2,
         "MaxPlayers":4,
         "Type":"Major",
-        "Address":"",
+        "Address":"/login",
         "Texture":""
     },
     {
@@ -12,7 +12,7 @@
         "RequiredPlayers":2,
         "MaxPlayers":2,
         "Type":"Major",
-        "Address":"",
+        "Address":"/login",
         "Texture":""
     },
     {
@@ -20,15 +20,15 @@
         "RequiredPlayers":4,
         "MaxPlayers":4,
         "Type":"Major",
-        "Address":"",
+        "Address":"/login",
         "Texture":""
     },
     {
         "Name":"Feed Slime",
         "RequiredPlayers":2,
         "MaxPlayers":4,
-        "Type":"MiniGame",
-        "Address":"",
+        "Type":"Minor",
+        "Address":"/login",
         "Texture":""
     },
     {
@@ -36,15 +36,31 @@
         "RequiredPlayers":2,
         "MaxPlayers":4,
         "Type":"Major",
-        "Address":"",
+        "Address":"/login",
         "Texture":""
     },
     {
         "Name":"Hunt Pirates",
         "RequiredPlayers":2,
         "MaxPlayers":4,
-        "Type":"MiniGame",
-        "Address":"",
+        "Type":"Minor",
+        "Address":"/login",
+        "Texture":""
+    },
+    {
+        "Name":"Battle Ships",
+        "RequiredPlayers":2,
+        "MaxPlayers":2,
+        "Type":"Major",
+        "Address":"/login",
+        "Texture":""
+    },
+    {
+        "Name":"Space Invaders",
+        "RequiredPlayers":1,
+        "MaxPlayers":4,
+        "Type":"Minor",
+        "Address":"/login",
         "Texture":""
     }
 ]

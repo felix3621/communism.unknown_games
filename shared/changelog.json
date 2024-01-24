@@ -41,7 +41,9 @@
             "Quick party (public)",
             "Select Character",
             "Player Ready",
-            "Party Leader"
+            "Party Leader",
+            "Select Game",
+            "Start Game"
         ]
     }
 ]
