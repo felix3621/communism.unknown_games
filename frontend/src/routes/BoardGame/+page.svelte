@@ -56,6 +56,9 @@
     import { onMount } from "svelte";
     var MapScaleFactor = 1;
 
+    var x = 50;
+    var Y = 50;
+
     var BordGameMapPoints = [
         {x:0,y:0, Type:"Safe"},
         {x:1,y:0, Type:"Bonus"},
@@ -126,6 +129,10 @@
 
             Map.appendChild(MapPoint);
         }
+        UpdateMapMovement();
+    }
+    function UpdateMapMovement() {
+        var Map = document.getElementById("Map");
     }
     function calculateAngle(x1, y1, x2, y2) {
         return Math.atan2(y2 - y1, x2 - x1);

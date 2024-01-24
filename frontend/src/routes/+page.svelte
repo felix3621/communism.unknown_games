@@ -167,7 +167,7 @@
         transition: left 2s ease;
 
     }
-    :global(.Character) {
+    :global(#SelectCharacter .Character) {
         aspect-ratio: 1/1;
         background-size: cover;
         width: 75px;
@@ -281,10 +281,28 @@
         max-height: 20%;
         border-radius: 50%;
     }
-    :global(.PlayerDisplay > div) {
-        height: 100%;
-        aspect-ratio: 1/1;
+    :global(.PlayerDisplay .Character) {
+        height: 75%;
         float: left;
+        aspect-ratio: 1/1;
+        background-size: cover;
+        position: relative;
+        pointer-events: all;
+        outline: 4px black solid;
+        background-color: rgb(25, 25, 25);
+        border-radius: 50%;
+        margin-right:10px;
+    }
+    :global(.PlayerNumber) {
+        text-align: center;
+        font-size: 90%;
+        border-radius: 50%;
+        aspect-ratio: 1/1;
+        color: black;
+    }
+    :global(.PlayerNumber h2) {
+        padding-top: 50%;
+        transform: translate(0,-30%);
     }
     :global(.PlayerDisplay > h1) {
         width: fit-content;
@@ -320,6 +338,41 @@
         color: white;
     }
     #gameCode {
+        font-size: 20px;
+        position: absolute;
+        transform: translate(-50%, -50%);
+        top: 25%;
+        background-color: rgb(50, 50, 50);
+        border: 5px solid black;
+        border-radius: 10px;
+        padding: 15px;
+        filter: drop-shadow(2mm 2mm 1mm black);
+        transition: left 2s ease;
+    }
+    #RightArrow {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+    }
+    #LeftArrow {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+    }
+    .Arrow {
+        font-size: 25px;
+        background-color: rgba(0,0,0,0);
+        outline: 0 rgba(0,0,0,0) solid;
+        border: 0;
+    }
+    .Arrow:hover {
+        color:gray;
+    }
+    #ReadyBtn {
+        position: absolute;
+        left: 50%;
+        bottom:28px;
+        transform: translate(-50%,0);
     }
 </style>
 <div id="Bricks"></div>
@@ -356,6 +409,9 @@
             <h1>Display Name</h1>
         </div>
     </div>
+    <button id="RightArrow" class="Arrow" on:click={()=>{if (Socket) { Socket.send(JSON.stringify({party: {function:"MovePage",value:1}}));}}}>&#8658;</button>
+    <button id="LeftArrow" class="Arrow" on:click={()=>{if (Socket) { Socket.send(JSON.stringify({party: {function:"MovePage",value:-1}}));}}}>&#8656;</button>
+    <button id="ReadyBtn" on:click={()=>{if (Socket) { Socket.send(JSON.stringify({party: {function:"ReadyPlayer"}}));}}}>Ready!</button>
 </div>
 <div id="FadeOut"></div>
 <img id="Logo" src="/images/logo.png">
@@ -364,6 +420,8 @@
     var Socket = null;
     var MaxPartySize = 4;
     var PartyMode = "";
+
+    
 
     function sendOnEnter(event, func) {
         if (event.key === 'Enter') {
@@ -385,19 +443,30 @@
 
         Socket.onmessage = (event) => {
             let message = JSON.parse(event.data);
-            if (!message.ping)
-                console.log(message);
-
-            // Page Sync
-            if (message.PartyPage != null && typeof message.PartyPage == "number") {
-                MovePageTo(message.PartyPage);
-            }
-            // Player Party
-            if (message.Players) {
-                GeneratePlayerList(message.Players);
-            }
-            if (message.code) {
-                document.getElementById("gameCode").innerText = message.code
+            if (!message.ping) {
+                console.log(message)
+                // Page Sync
+                if (message.PartyPage != null && typeof message.PartyPage == "number") {
+                    MovePageTo(message.PartyPage);
+                }
+                // Player Party
+                if (message.Players) {
+                    GeneratePlayerList(message.Players);
+                }
+                if (message.startAllowed) {
+                    document.getElementById("RightArrow").style.filter = "opacity(1)";
+                    document.getElementById("LeftArrow").style.filter = "opacity(1)";
+                } else {
+                    document.getElementById("RightArrow").style.filter = "opacity(0)";
+                    document.getElementById("LeftArrow").style.filter = "opacity(0)";
+                }
+                if (document.getElementById("gameCode")) {
+                    if (message.code) {
+                        document.getElementById("gameCode").innerText = message.code
+                    } else {
+                        document.getElementById("gameCode").innerText = ""
+                    }
+                }
             }
         }
 
@@ -434,6 +503,10 @@
         MovingPartsPage = [
             {
                 Element:document.getElementById("SelectCharacter"),
+                Page:0
+            },
+            {
+                Element:document.getElementById("gameCode"),
                 Page:0
             },
             {
@@ -547,6 +620,11 @@
         document.getElementById("PartyScreen").style.backgroundPositionX = -document.getElementById("PartyScreen").offsetWidth*index + "px";
         let MoveBackground = false;
         let ShowParty = true;
+        if (index>0) {
+            document.getElementById("LeftArrow").style.filter = "opacity(1)";
+        } else {
+            document.getElementById("LeftArrow").style.filter = "opacity(0)";
+        }
         for (let i = 0; i < MovingPartsPage.length; i++) {
             if (MovingPartsPage[i].Page==index) {
                 MovingPartsPage[i].Element.style.left = "50%";
@@ -666,11 +744,34 @@
             if (Players.length>i) {
                 if (Players[i].Character!=null) {
                     Container.appendChild(GeneratePlayerCharacter(Players[i].Character));
+                } else {
+                    let PlayerNumber = document.createElement("div");
+                    PlayerNumber.classList.add("Character");
+                    PlayerNumber.innerHTML = "<h2 style='margin:0'>P" + (i+1) + "</h2>";
+                    PlayerNumber.classList.add("PlayerNumber");
+                    let background = "";
+                    switch (i) {
+                        case 0:
+                            background += "Red"
+                            break;
+                        case 1:
+                            background += "Orange"
+                            break;
+                        case 2:
+                            background += "MediumBlue"
+                            break;
+                        case 3:
+                            background += "Magenta"
+                            break;
+                    }
+                    PlayerNumber.style.backgroundColor = background;
+                    Container.appendChild(PlayerNumber);
                 }
 
-                let WaitingForPlayer = document.createElement("h1");
-                WaitingForPlayer.innerHTML = Players[i].DisplayName;
-                Container.appendChild(WaitingForPlayer);
+                let PlayerName = document.createElement("h1");
+                PlayerName.innerHTML = Players[i].DisplayName;
+                PlayerName.style.color = Players[i].Ready ? "rgb(0,255,0)" : "rgb(255,0,0)"
+                Container.appendChild(PlayerName);
             } else {
                 let WaitingForPlayer = document.createElement("h1");
                 WaitingForPlayer.innerHTML = "WaitingForPlayer";

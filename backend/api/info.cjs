@@ -3,18 +3,27 @@ const auth = require('../modules/authentication.cjs');
 const fa = require('../modules/fileAccess.cjs');
 const router = express.Router();
 
+router.use(auth.checkUserMiddleware)
 
-router.get('/changelog', auth.checkUserMiddleware, (req, res) => {
+router.get('/changelog', (req, res) => {
     try {
-        res.json(JSON.parse(fa.read('./changelog.json')));
+        res.json(JSON.parse(fa.read('./shared/changelog.json')));
     } catch (e) {
         res.json([]);
     }
 })
 
-router.get('/characters', auth.checkUserMiddleware, (req, res) => {
+router.get('/characters', (req, res) => {
     try {
-        res.json(JSON.parse(fa.read('./characters.json')));
+        res.json(JSON.parse(fa.read('./shared/characters.json')));
+    } catch (e) {
+        res.json([]);
+    }
+})
+
+router.get('/games', (req, res) => {
+    try {
+        res.json(JSON.parse(fa.read('./shared/games.json')));
     } catch (e) {
         res.json([]);
     }

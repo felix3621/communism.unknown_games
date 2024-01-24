@@ -38,7 +38,10 @@
         "description": "Working party system",
         "changes": [
             "Create and join private party",
-            "Quick party (public)"
+            "Quick party (public)",
+            "Select Character",
+            "Player Ready",
+            "Party Leader"
         ]
     }
 ]

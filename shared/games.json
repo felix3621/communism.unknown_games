@@ -1,0 +1,50 @@
+[
+    {
+        "Name":"Board Game",
+        "RequiredPlayers":2,
+        "MaxPlayers":4,
+        "Type":"Major",
+        "Address":"",
+        "Texture":""
+    },
+    {
+        "Name":"2 Player Chess",
+        "RequiredPlayers":2,
+        "MaxPlayers":2,
+        "Type":"Major",
+        "Address":"",
+        "Texture":""
+    },
+    {
+        "Name":"4 Player Chess",
+        "RequiredPlayers":4,
+        "MaxPlayers":4,
+        "Type":"Major",
+        "Address":"",
+        "Texture":""
+    },
+    {
+        "Name":"Feed Slime",
+        "RequiredPlayers":2,
+        "MaxPlayers":4,
+        "Type":"MiniGame",
+        "Address":"",
+        "Texture":""
+    },
+    {
+        "Name":"Select Mini Games",
+        "RequiredPlayers":2,
+        "MaxPlayers":4,
+        "Type":"Major",
+        "Address":"",
+        "Texture":""
+    },
+    {
+        "Name":"Hunt Pirates",
+        "RequiredPlayers":2,
+        "MaxPlayers":4,
+        "Type":"MiniGame",
+        "Address":"",
+        "Texture":""
+    }
+]
