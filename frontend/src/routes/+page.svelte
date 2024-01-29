@@ -491,7 +491,9 @@
 
         Socket.onmessage = (event) => {
             let message = JSON.parse(event.data);
-            if (!message.ping) {
+            if (message.ping) {
+                Socket.send(JSON.stringify({ping: message.ping}))
+            } else {
                 console.log(message)
                 // Page Sync
                 if (message.PartyPage != null && typeof message.PartyPage == "number") {
@@ -606,6 +608,7 @@
         generateChangeLog();
         GenerateCharacters();
         GenerateGames();
+        CreateIceSpikes();
         
         AnimationLoop();
         document.getElementById('FindPartyCode').addEventListener("keypress",(e) => sendOnEnter(e, FindParty))
@@ -913,6 +916,17 @@
                 Container.appendChild(WaitingForPlayer);
             }
             Parent.appendChild(Container);
+        }
+    }
+    function CreateIceSpikes() {
+        let Parent = document.getElementById("FrostBackground");
+        var MaxSpikeHeight = 100;
+        var MinSpikeHeight = 20;
+        var MaxSpawnDistance = 100;
+        var MinSpawnDistance = 20;
+        var NextSpawnDistance = MinSpawnDistance + Math.random()*(MaxSpawnDistance-MinSpawnDistance);
+        for (let i = 0; i < Parent.offsetWidth; i+=NextSpawnDistance) {
+            
         }
     }
 </script>

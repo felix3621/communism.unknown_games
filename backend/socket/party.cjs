@@ -6,7 +6,7 @@ const db = require('../modules/database.cjs');
 const parties = require('./party/parties.cjs');
 
 const TPS = 10;
-const disconnectTimeout = 30 * TPS;
+const disconnectTimeout = 10 * TPS;
 
 var users = new Array();
 
@@ -59,16 +59,12 @@ setInterval(() => {
     });
 
     for (let i = 0; i < users.length; i++) {
-        if (users[i].socket) {
-            users[i].disconnectTimeout = disconnectTimeout
-        } else {
-            users[i].disconnectTimeout--;
+        users[i].disconnectTimeout--;
 
-            if (users[i].disconnectTimeout <= 0) {
-                parties.removePlayer(users[i].username);
-                users.splice(i,1);
-                i--;
-            }
+        if (users[i].disconnectTimeout <= 0) {
+            parties.removePlayer(users[i].user.username);
+            users.splice(i,1);
+            i--;
         }
     }
 
@@ -134,6 +130,9 @@ webSocketServer.on('connection', async(socket, request) => {
         }
         if (msg.party) {
             parties.party(username, msg.party);
+        }
+        if (msg.ping) {
+            users.find(elem => elem.user.username == username).disconnectTimeout = disconnectTimeout;
         }
     });
 
